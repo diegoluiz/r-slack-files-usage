@@ -39,13 +39,20 @@ merged
 ```{r}
 
 sums = aggregate(merged$size, by=list(Category=merged$real_name), FUN=sum)
-counts = count(merged, "real_name")
+counts = plyr:::count(merged, "real_name")
 
 aggs = merge(sums, counts, by.x = "Category", by.y="real_name")
 colnames(aggs) = c("Name", "Sum", "Count")
 
 aggs
 ```
+
+# Files Report
+```{r}
+head(aggs[order(aggs$Sum, decreasing= T),], n = 20)
+head(files[order(files$size, decreasing= T),], n = 20)
+```
+
 
 # Plots 
 
@@ -80,7 +87,7 @@ treemap(merged, #Your data frame object
 ```{r}
 
 sums = aggregate(merged$size, by=list(Category=merged$created), FUN=sum)
-counts = count(merged, "created")
+counts = plyr:::count(merged, "created")
 aggs = merge(sums, counts, by.x = "Category", by.y="created")
 colnames(aggs) = c("date", "sum", "count")
 
