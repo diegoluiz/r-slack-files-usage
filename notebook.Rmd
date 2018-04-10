@@ -1,0 +1,103 @@
+---
+title: "Slack Files Usage"
+output:
+  html_notebook: default
+  html_document: default
+  pdf_document: default
+---
+
+List of files in our slack and who uploaded them
+
+# Imports
+```{r}
+library(treemap)
+library(plyr)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+
+# Loading files
+```{r}
+users = read.csv2("users.csv", header = TRUE, sep = ",")
+files = read.csv2("files.csv", header = TRUE, sep = ",")
+```
+
+# sanitise some props
+```{r}
+files$created = as.Date(as.POSIXct(files$created, origin="1970-01-01"))
+```
+
+# Merging files
+```{r}
+merged = merge(x = files, y= users, by.x="user", by.y="id")
+merged
+```
+
+# Aggregating
+```{r}
+
+sums = aggregate(merged$size, by=list(Category=merged$real_name), FUN=sum)
+counts = count(merged, "real_name")
+
+aggs = merge(sums, counts, by.x = "Category", by.y="real_name")
+colnames(aggs) = c("Name", "Sum", "Count")
+
+aggs
+```
+
+# Plots 
+
+# Pie chart
+```{r}
+top_20 = head(aggs[order(aggs$Count, decreasing= T),], n = 20)
+ggplot(top_20, aes(x="", y=Count, fill=Name)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+  ggtitle("Top 20 users - Files by user")
+
+top_20 = head(aggs[order(aggs$Sum, decreasing= T),], n = 20)
+ggplot(top_20, aes(x="", y=Sum, fill=Name)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+  ggtitle("Top 20 users - Size by user")
+```
+
+
+## TreeMap
+```{r}
+treemap(merged, #Your data frame object
+        index=c("real_name", "title"),  #A list of your categorical variables
+        vSize = "size",  #This is your quantitative variable
+        type="index", #Type sets the organization and color scheme of your treemap
+        title="Slack public files usage", #Customize your title
+        fontsize.title = 14 #Change the font size of the title
+        )
+```
+
+## Time series
+```{r}
+
+sums = aggregate(merged$size, by=list(Category=merged$created), FUN=sum)
+counts = count(merged, "created")
+aggs = merge(sums, counts, by.x = "Category", by.y="created")
+colnames(aggs) = c("date", "sum", "count")
+
+pivot.aggs <- aggs %>%
+  select(date, sum, count) %>%
+  gather(key = "variable", value = "value", -date)
+
+aggs
+pivot.aggs
+
+```
+```{r}
+ggplot(aggs, aes(x = date)) + 
+  geom_line(aes(y = count, color = "count"), size = 0.5) +
+  scale_y_continuous("Count")
+ggplot(aggs, aes(x = date)) + 
+  geom_line(aes(y = sum / 10, color = "sum"), size = 0.5) +
+  scale_y_continuous("Sum")
+```
+
